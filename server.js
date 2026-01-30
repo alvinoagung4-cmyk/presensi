@@ -10,26 +10,21 @@ const app = express();
 
 // ============ MIDDLEWARE ============
 // CORS Configuration untuk mendukung multiple origins (termasuk projectone)
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,
+  'http://localhost:3000',
+  'http://localhost:8080',
+];
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    // List of allowed origins
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:8080',
-      'http://192.168.1.1:8080',
-      process.env.CORS_ORIGIN || '*'
-    ];
-    
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
-  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
@@ -667,14 +662,14 @@ app.post('/api/change-password', verifyToken, async (req, res) => {
 });
 
 // ============ START SERVER ============
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 URL: http://localhost:${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV}`);
 });
+
 
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
