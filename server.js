@@ -665,7 +665,7 @@ app.post('/api/change-password', verifyToken, async (req, res) => {
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV}`);
 });
