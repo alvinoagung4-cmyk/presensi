@@ -9,11 +9,30 @@ require('dotenv').config();
 const app = express();
 
 // ============ MIDDLEWARE ============
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
+// CORS Configuration untuk mendukung multiple origins (termasuk projectone)
+const corsOptions = {
+  origin: function (origin, callback) {
+    // List of allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+      'http://192.168.1.1:8080',
+      process.env.CORS_ORIGIN || '*'
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -25,16 +44,19 @@ const pool = new Pool({
     : false,
 });
 
-/*Test database connection
+// Test database connection
 pool.connect()
   .then(client => {
-    console.log('Database connected');
+    console.log('✅ Database connected successfully');
     client.release();
   })
   .catch(err => {
     console.error('❌ Database error:', err.message);
-    console.log('Pastikan PostgreSQL berjalan dan database sudah dibuat');
-  });*/
+    console.log('Pastikan:');
+    console.log('1. DATABASE_URL sudah diset di .env');
+    console.log('2. PostgreSQL server berjalan');
+    console.log('3. Database dan tables sudah dibuat');
+  });
 
 // ============ EMAIL SETUP ============
 const transporter = nodemailer.createTransport({
@@ -65,7 +87,9 @@ const verifyToken = (req, res, next) => {
 
 // Fungsi untuk kirim email
 const sendVerificationEmail = async (email, nama_lengkap, token) => {
-  const verificationLink = `http://192.168.1.1:8080/verify-email?token=${token}`;
+  // Ubah URL sesuai dengan domain production Railway Anda
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const verificationLink = `${baseUrl}/verify-email?token=${token}`;
   
   try {
     await transporter.sendMail({
@@ -643,10 +667,36 @@ app.post('/api/change-password', verifyToken, async (req, res) => {
 });
 
 // ============ START SERVER ============
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 URL: http://localhost:${PORT}`);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    pool.end(() => {
+      console.log('Database connection closed');
+      process.exit(0);
+    });
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    pool.end(() => {
+      console.log('Database connection closed');
+      process.exit(0);
+    });
+  });
 });
 
 module.exports = app;
