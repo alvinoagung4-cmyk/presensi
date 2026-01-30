@@ -19,14 +19,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // ============ DATABASE CONNECTION (PostgreSQL) ============
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_NAME || 'presensi_app',
-  port: process.env.DB_PORT || 5433
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
-// Test database connection
+/*Test database connection
 pool.connect()
   .then(client => {
     console.log('Database connected');
@@ -35,7 +34,7 @@ pool.connect()
   .catch(err => {
     console.error('❌ Database error:', err.message);
     console.log('Pastikan PostgreSQL berjalan dan database sudah dibuat');
-  });
+  });*/
 
 // ============ EMAIL SETUP ============
 const transporter = nodemailer.createTransport({
@@ -645,8 +644,9 @@ app.post('/api/change-password', verifyToken, async (req, res) => {
 
 // ============ START SERVER ============
 const PORT = process.env.PORT || 3001;
-app.listen(3001, '0.0.0.0', () => {
-  console.log('Server running on 0.0.0.0:3001');
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;
